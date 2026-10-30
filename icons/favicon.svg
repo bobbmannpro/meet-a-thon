@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Sunlight favicon: heavier strokes and an ink edge so it reads at 16px on any tab. -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#FFFFFF" stroke="#0B0D10" stroke-width="4"/>
+  <path d="M9.4 9.4 L32.0 32.0" fill="none" stroke="#0B3FCC" stroke-width="7.0" stroke-linecap="round"/>
+  <path d="M9.4 32.0 L32.0 32.0" fill="none" stroke="#B44A00" stroke-width="7.0" stroke-linecap="round"/>
+  <path d="M9.4 54.6 L32.0 32.0" fill="none" stroke="#04613F" stroke-width="7.0" stroke-linecap="round"/>
+  <path d="M32.0 32.0 L54.6 32.0" fill="none" stroke="#0B0D10" stroke-width="8.6" stroke-linecap="round"/>
+  <circle cx="32.0" cy="32.0" r="5.5" fill="#FFFFFF" stroke="#0B0D10" stroke-width="3.9"/>
+</svg>
