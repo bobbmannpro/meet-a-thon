@@ -168,8 +168,8 @@
         <rect x="54" y="8" width="11" height="7" rx="2" fill="#0B0D10" transform="rotate(45 59.5 11.5)"/>
         <circle cx="34" cy="39" r="26" fill="#0B3FCC" stroke="#0B0D10" stroke-width="5"/>
         <g clip-path="url(#spl-clip)">
-          <path class="spl-wave" d="M-20 33 q4.5 -7 9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
-          <path class="spl-wave" d="M-20 46 q4.5 -7 9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="42" cy="29" r="5.2" fill="#FFFFFF"/><path d="M16 38 L30 30.5 L38.5 38.5" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="spl-wave" d="M-20 49 q4.5 -7 9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
         </g>
       </svg>
       <div id="splash-logo">swimmeet.studio</div>
@@ -178,7 +178,7 @@
       <div id="splash-dot"></div>
     </div>
     <script>
-      // Loading screen: the water in the stopwatch keeps moving until the app is ready.
+      // Loading screen: the water under the swimmer keeps moving until the app is ready.
       (function () {
         var waves = document.querySelectorAll("#splash-mark .spl-wave");
         window.__splashStart = performance.now(); window.__splashLoop = 1500; window.__splashEnd = 1;
@@ -187,7 +187,6 @@
           if (!document.getElementById("splash")) return;
           var x = ((now - t0) % 1500) / 1500 * 18;
           waves[0].setAttribute("transform", "translate(" + x + " 0)");
-          waves[1].setAttribute("transform", "translate(" + (-x) + " 0)");
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
@@ -256,8 +255,8 @@
             <rect x="31" y="8" width="6" height="6" fill="#0B0D10" />
             <rect x="54" y="8" width="11" height="7" rx="2" fill="#0B0D10" transform="rotate(45 59.5 11.5)" />
             <circle cx="34" cy="39" r="26" fill="#0B3FCC" stroke="#0B0D10" strokeWidth="5" />
-            <path d="M16 33 q4.5 -7 9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" />
-            <path d="M16 46 q4.5 -7 9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="42" cy="29" r="5.2" fill="#FFFFFF" /><path d="M16 38 L30 30.5 L38.5 38.5" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M16 49 q4.5 -7 9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" />
           </svg>
         );
       }
