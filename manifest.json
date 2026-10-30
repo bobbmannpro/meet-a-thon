@@ -1,6 +1,6 @@
 {
-  "name": "Meet-a-thon",
-  "short_name": "Meet-a-thon",
+  "name": "swimmeet.studio",
+  "short_name": "swimmeet.studio",
   "description": "Swim meet timing from your phones",
   "start_url": ".",
   "display": "standalone",

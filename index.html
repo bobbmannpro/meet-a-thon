@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Meet-a-thon — Swim Meet Timing</title>
+    <title>swimmeet.studio — Swim Meet Timing</title>
     <meta name="description" content="Run a swim meet from your phones: heats and lanes, lane timers, live results for parents, team scores." />
-    <meta property="og:title" content="Meet-a-thon" />
+    <meta property="og:title" content="swimmeet.studio" />
     <meta property="og:description" content="Swim meet timing from your phones." />
     <link rel="manifest" href="manifest.json" />
     <!-- Brand marks live in timeathon-brand/ and are referenced by path so the
@@ -19,7 +19,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Meet-a-thon" />
+    <meta name="apple-mobile-web-app-title" content="swimmeet.studio" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -147,10 +147,9 @@
       #splash { position:fixed; inset:0; background:var(--tm-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; transition:opacity 0.3s; }
       #splash.hide { opacity:0; pointer-events:none; }
       #splash-mark { width:120px; height:auto; margin-bottom:22px; }
-      #splash-logo { font-family:var(--tm-font); font-size:48px; font-weight:900; letter-spacing:-1.2px; line-height:0.92; color:var(--tm-ink); }
+      #splash-logo { font-family:var(--tm-font); font-size:clamp(30px, 9.5vw, 48px); font-weight:900; letter-spacing:-1.2px; line-height:0.92; color:var(--tm-ink); }
       #splash-sub { font-size:14px; font-weight:800; letter-spacing:1.2px; color:var(--tm-ink-muted); margin-top:12px; }
-      #splash-rule { width:170px; height:8px; margin-top:14px;
-                     background: linear-gradient(90deg, var(--tm-swim) 0 33.3%, var(--tm-bike) 33.3% 66.6%, var(--tm-run) 66.6% 100%); }
+      #splash-rule { width:170px; height:8px; margin-top:14px; background:#0B3FCC; }
       #splash-dot { width:12px; height:12px; background:var(--tm-live); border-radius:50%; margin-top:30px; animation:pulse 1s ease-in-out infinite; }
       @keyframes pulse { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
       .leaflet-ath-label { background: #FFFFFF; border: 2px solid var(--tm-ink); color: var(--tm-ink); font-family: var(--tm-font); font-size: 14px; font-weight: 800; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
@@ -163,43 +162,32 @@
   <body>
     <div id="splash">
       <svg id="splash-mark" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="spl" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#0B0D10"/><stop offset="100%" stop-color="#0B0D10"/>
-          </linearGradient>
-        </defs>
-        <g transform="translate(27,34)">
-          <path d="M-24 -29 L5 0" fill="none" stroke="#0B3FCC" stroke-linecap="round" stroke-width="6" class="spl-hand" data-turns="2"/>
-          <path d="M-24 0 L5 0" fill="none" stroke="#B44A00" stroke-linecap="round" stroke-width="6" class="spl-hand" data-turns="3"/>
-          <path d="M-24 29 L5 0" fill="none" stroke="#04613F" stroke-linecap="round" stroke-width="6" class="spl-hand" data-turns="4"/>
-          <path d="M5 0 L34 0" fill="none" stroke="#0B0D10" stroke-linecap="round" stroke-width="7.5" class="spl-hand" data-turns="1"/>
-          <circle cx="5" cy="0" r="6.5" fill="#FFFFFF" stroke="#0B0D10" stroke-width="3.5"/>
+        <defs><clipPath id="spl-clip"><circle cx="34" cy="39" r="23.5"/></clipPath></defs>
+        <rect x="27" y="1" width="14" height="8" rx="2.5" fill="#0B0D10"/>
+        <rect x="31" y="8" width="6" height="6" fill="#0B0D10"/>
+        <rect x="54" y="8" width="11" height="7" rx="2" fill="#0B0D10" transform="rotate(45 59.5 11.5)"/>
+        <circle cx="34" cy="39" r="26" fill="#0B3FCC" stroke="#0B0D10" stroke-width="5"/>
+        <g clip-path="url(#spl-clip)">
+          <path class="spl-wave" d="M-20 33 q4.5 -7 9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+          <path class="spl-wave" d="M-20 46 q4.5 -7 9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
         </g>
       </svg>
-      <div id="splash-logo">MEET-A-THON</div>
+      <div id="splash-logo">swimmeet.studio</div>
       <div id="splash-rule"></div>
       <div id="splash-sub">HEATS &nbsp;·&nbsp; LANES &nbsp;·&nbsp; TIMES</div>
       <div id="splash-dot"></div>
     </div>
     <script>
-      // Loading screen: each hand rests in the logo, spins its own number of turns around the
-      // pivot, eases back into place with the others, rests, and loops — until the app takes over.
+      // Loading screen: the water in the stopwatch keeps moving until the app is ready.
       (function () {
-        var hands = document.querySelectorAll("#splash-mark .spl-hand");
-        if (!hands.length) return;
-        var LOOP = 3000, REST = 0.12, END = 0.86;
-        window.__splashStart = performance.now(); window.__splashLoop = LOOP; window.__splashEnd = END;
-        var ease = function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+        var waves = document.querySelectorAll("#splash-mark .spl-wave");
+        window.__splashStart = performance.now(); window.__splashLoop = 1500; window.__splashEnd = 1;
         var t0 = window.__splashStart;
         function frame(now) {
-          var splash = document.getElementById("splash");
-          if (!splash) return;
-          var f = ((now - t0) % LOOP) / LOOP;
-          var k = f < REST ? 0 : f > END ? 1 : ease((f - REST) / (END - REST));
-          for (var i = 0; i < hands.length; i++) {
-            var turns = +hands[i].getAttribute("data-turns") || 1;
-            hands[i].setAttribute("transform", "rotate(" + (k * turns * 360) + " 5 0)");
-          }
+          if (!document.getElementById("splash")) return;
+          var x = ((now - t0) % 1500) / 1500 * 18;
+          waves[0].setAttribute("transform", "translate(" + x + " 0)");
+          waves[1].setAttribute("transform", "translate(" + (-x) + " 0)");
           requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
@@ -216,7 +204,7 @@
     <div id="root">
       <!-- What search engines and link previews read before the app loads; the app replaces it. -->
       <main style="font-family:Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#0B0D10">
-        <h1>Meet-a-thon: swim meet timing from your phones</h1>
+        <h1>swimmeet.studio: swim meet timing from your phones</h1>
         <p>Heats and lanes, lane timers on phones, live results for parents, team scores and ribbons.</p>
       </main>
     </div>
@@ -260,17 +248,16 @@
       
 
       // Three discipline lines — swim, bike, run — meeting at the finish post.
-      function TimeathonMark({ size = 30 }) {
+      function SwimMark({ size = 30 }) {
         return (
           <svg width={size} height={size} viewBox="0 0 68 68" aria-hidden="true"
                style={{ display: "block", flexShrink: 0 }}>
-            <g transform="translate(27,34)">
-              <path d="M-24 -29 L5 0" fill="none" stroke={TM.swim} strokeWidth="7" strokeLinecap="round" />
-              <path d="M-24 0 L5 0"   fill="none" stroke={TM.bike} strokeWidth="7" strokeLinecap="round" />
-              <path d="M-24 29 L5 0"  fill="none" stroke={TM.run}  strokeWidth="7" strokeLinecap="round" />
-              <path d="M5 0 L34 0"    fill="none" stroke={TM.ink}  strokeWidth="8.5" strokeLinecap="round" />
-              <circle cx="5" cy="0" r="6.5" fill="#FFFFFF" stroke={TM.ink} strokeWidth="4" />
-            </g>
+            <rect x="27" y="1" width="14" height="8" rx="2.5" fill="#0B0D10" />
+            <rect x="31" y="8" width="6" height="6" fill="#0B0D10" />
+            <rect x="54" y="8" width="11" height="7" rx="2" fill="#0B0D10" transform="rotate(45 59.5 11.5)" />
+            <circle cx="34" cy="39" r="26" fill="#0B3FCC" stroke="#0B0D10" strokeWidth="5" />
+            <path d="M16 33 q4.5 -7 9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" />
+            <path d="M16 46 q4.5 -7 9 0 t9 0 t9 0 t9 0" fill="none" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" />
           </svg>
         );
       }
@@ -281,14 +268,14 @@
         color: TM.ink, textTransform: "uppercase",
       };
 
-      function TimeathonLockup({ size = 30, wordSize = 26, tagline = null, rule = false, center = true }) {
+      function SwimLockup({ size = 30, wordSize = 26, tagline = null, rule = false, center = true }) {
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 11, justifyContent: center ? "center" : "flex-start" }}>
-            <TimeathonMark size={size} />
+            <SwimMark size={size} />
             <div style={{ textAlign: "left" }}>
-              <div style={{ ...TM_WORD_STYLE, fontSize: wordSize }}>MEET-A-THON</div>
+              <div style={{ ...TM_WORD_STYLE, fontSize: wordSize, textTransform: "none", letterSpacing: -0.5 }}>swimmeet.studio</div>
               {rule && <div style={{ height: 6, marginTop: 6,
-                background: `linear-gradient(90deg, ${TM.swim} 0 33.3%, ${TM.bike} 33.3% 66.6%, ${TM.run} 66.6% 100%)` }} />}
+                background: TM.swim }} />}
               {tagline && (
                 <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 1.2, textTransform: "uppercase",
                               color: TM.inkMuted, marginTop: 6 }}>{tagline}</div>
@@ -937,7 +924,7 @@
           return { freestyle: 1, backstroke: 2, breaststroke: 3, butterfly: 4, im: 5 }[t] || 1;
         };
         const sex = g => /^g|^w|^f/i.test(g || "") ? "F" : /^b|^m(?!ix)/i.test(g || "") ? "M" : "X";
-        const out = [[clean(meet.meetName) || "Swim Meet", us, us, us, courseCode, clean(meet.facility), "", "Meet-a-thon", "1.0", "CN", "0000"].join(";")];
+        const out = [[clean(meet.meetName) || "Swim Meet", us, us, us, courseCode, clean(meet.facility), "", "swimmeet.studio", "1.0", "CN", "0000"].join(";")];
         meet.events.forEach(ev => {
           const [min, max] = ev.minAge != null ? [ev.minAge, ev.maxAge] : ageRangeOf(ev.ageGroup);
           const relay = ev.relay || /relay/i.test(ev.stroke || "");
@@ -960,7 +947,7 @@
         {"id": "mini-fbb", "name": "Mini Meet — Free, Back, Breast", "blurb": "11 events, girls and boys together: 50s for every age, plus 100 free for 9 & up.", "events": "1;F;X;I;0;8;50;1\n2;F;X;I;9;10;50;1\n3;F;X;I;11;0;50;1\n4;F;X;I;0;8;50;2\n5;F;X;I;9;10;50;2\n6;F;X;I;11;0;50;2\n7;F;X;I;0;8;50;3\n8;F;X;I;9;10;50;3\n9;F;X;I;11;0;50;3\n10;F;X;I;9;10;100;1\n11;F;X;I;11;0;100;1", "file": "meet-templates/Mini Meet - Free, Back, Breast.hyv"}
       ];
       function templateMeet(t) {
-        return parseHyv(`${t.name};;;;Y;;;Meet-a-thon;1.0;CN;0000\n${t.events}`);
+        return parseHyv(`${t.name};;;;Y;;;swimmeet.studio;1.0;CN;0000\n${t.events}`);
       }
 
       // A sample meet to try the app with: 16 events (25 free/back for 8 & under,
@@ -1515,7 +1502,7 @@
       //   "entries" coach → host: one team's swimmers, events and relays
       //   "program" host → coaches: the whole seeded meet (heats and lanes)
       function meetFileText(meet, kind, team) {
-        const base = { app: "Meet-a-thon", kind, version: 1, savedAt: new Date().toISOString(),
+        const base = { app: "swimmeet.studio", kind, version: 1, savedAt: new Date().toISOString(),
           meet: { meetUid: meet.meetUid, meetName: meet.meetName || "Swim Meet", date: meet.date || null, facility: meet.facility || null,
             pool: meet.pool || "25y", lanes: meet.lanes || 8, ageUpDate: meet.ageUpDate || meet.date || null, teams: meet.teams || [],
             events: meet.events.map(ev => kind === "program" ? ev : { ...ev, entries: [], heats: [{ heatNum: 1, lanes: [] }] }) } };
@@ -2442,7 +2429,7 @@ ${html}</body></html>`);
                 <option value="event">By event</option>
               </select>
               <select value={style} onChange={e => setStyle(e.target.value)} aria-label="Label style" style={sel}>
-                <option value="timeathon">Meet-a-thon style</option>
+                <option value="timeathon">swimmeet.studio style</option>
                 <option value="hytek">Hy-Tek style</option>
               </select>
             </div>
@@ -2569,7 +2556,7 @@ ${html}</body></html>`);
         );
         const steps = who === "coach"
           ? [["1", "Import swimmers", "Once a season, from Team Manager."], ["2", "Import events", "The file the host sends you."], ["3", "Enter your swimmers", "Setup → Who's swimming."], ["4", "Export entries", "Send that file to the host."], ["5", "Import program", "The heat sheet the host sends back."], ["6", "Import results", "After the meet — times go into each swimmer's profile."]]
-          : [["1", "Export events", "Send to every coach."], ["2", "Import entries", "Each coach's file — Meet-a-thon or Team Manager."], ["3", "Seed", "Setup → Events & heats → 🌱 Seed All."], ["4", "Export program", "Send the heat sheet to every coach."], ["5", "Run the meet", "Race tab."], ["6", "Export results", "Send to every coach after the meet."]];
+          : [["1", "Export events", "Send to every coach."], ["2", "Import entries", "Each coach's file — swimmeet.studio or Team Manager."], ["3", "Seed", "Setup → Events & heats → 🌱 Seed All."], ["4", "Export program", "Send the heat sheet to every coach."], ["5", "Run the meet", "Race tab."], ["6", "Export results", "Send to every coach after the meet."]];
         return (
           <div>
             <h1 style={{ ...TM_DISPLAY, marginTop: 4 }}>Import &amp; export</h1>
@@ -2612,7 +2599,7 @@ ${html}</body></html>`);
                   <li>Select <b>all your swimmers</b> and save. Team Manager makes a <b>.zip</b> file.</li>
                   <li>Here, tap <b>⬆ Import swimmers</b> and pick that .zip. Birthdays come with it, so ages are always right.</li>
                 </ol>
-                <div style={{ ...TM_CAPTION, marginTop: 6 }}>Also works: Hy-Tek <b>Meet Results</b> files (.cl2 / .hy3) to bring in past times, or a Meet-a-thon athletes file.</div>
+                <div style={{ ...TM_CAPTION, marginTop: 6 }}>Also works: Hy-Tek <b>Meet Results</b> files (.cl2 / .hy3) to bring in past times, or a swimmeet.studio athletes file.</div>
               </details>,
               "athletes",
               <>
@@ -2627,7 +2614,7 @@ ${html}</body></html>`);
                 <button onClick={() => exp("events", "hyv")} disabled={!hasMeet} style={{ ...btnE, opacity: hasMeet ? 1 : 0.5 }}>⬇ Hy-Tek (.hyv)</button>
               </>)}
 
-            {card("entries", "Entries", TM.bike, "Who's swimming which events. Coaches export their team's entries; the host imports every team's file (Meet-a-thon or Team Manager entries).",
+            {card("entries", "Entries", TM.bike, "Who's swimming which events. Coaches export their team's entries; the host imports every team's file (swimmeet.studio or Team Manager entries).",
               !hasMeet ? <div style={{ ...TM_CAPTION, marginTop: 6 }}>Import the events first — entries go into a meet.</div> : null,
               "entries",
               <button onClick={() => exp("entries", "json")} disabled={!hasMeet || !cur} style={{ ...btnE, opacity: hasMeet && cur ? 1 : 0.5 }}>⬇ Export {cur || "my"} entries</button>,
@@ -3962,7 +3949,7 @@ ${html}</body></html>`);
             const mine = (await rtdb.ref("users/" + currentUser.uid).once("value")).val() || {};
             const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), account: { uid: currentUser.uid, email: currentUser.email, emailVerified: currentUser.emailVerified }, data: mine }, null, 2)], { type: "application/json" });
             const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-            a.download = "meetathon-my-data-" + new Date().toISOString().slice(0, 10) + ".json"; a.click();
+            a.download = "swimmeet-studio-my-data-" + new Date().toISOString().slice(0, 10) + ".json"; a.click();
             setTimeout(() => URL.revokeObjectURL(a.href), 5000);
             setPrivacyMsg("Downloaded — it's in your Downloads folder.");
           } catch (e) { setPrivacyMsg("Couldn't download right now. Try again in a moment."); }
@@ -4798,8 +4785,8 @@ ${html}</body></html>`);
         // from a coach, or the seeded program. Returns a message to show.
         async function importMeetJson(file) {
           let d;
-          try { d = JSON.parse(await file.text()); } catch (_) { return { ok: false, text: "That isn't a Meet-a-thon meet file." }; }
-          if (!d || !["Meet-a-thon", "Timeathon"].includes(d.app) || !d.meet) return { ok: false, text: "That isn't a Meet-a-thon meet file." };
+          try { d = JSON.parse(await file.text()); } catch (_) { return { ok: false, text: "That isn't a swimmeet.studio meet file." }; }
+          if (!d || !["swimmeet.studio", "Meet-a-thon", "Timeathon"].includes(d.app) || !d.meet) return { ok: false, text: "That isn't a swimmeet.studio meet file." };
           if (d.kind === "results") d.meet.events = d.meet.events || [];
           const fm = d.meet;
           const evs = asList(fm.events).map(ev => ({ ...ev, entries: asList(ev.entries), heats: asList(ev.heats).map(h => ({ ...h, lanes: asList(h.lanes).map(l => ({ ...l, legs: l.legs ? asList(l.legs) : null })) })) }));
@@ -4843,7 +4830,7 @@ ${html}</body></html>`);
           return { ok: false, text: "That file type isn't supported." };
         }
 
-        function joinSwimWatchCode(codeIn) {
+        function joinSwimWatchCode(codeIn, quiet) {
           const code = normCode(codeIn);
           if (!code) return;
           try { localStorage.setItem("swim-watch-last", JSON.stringify({ code, at: Date.now() })); } catch (_) {}
@@ -4855,7 +4842,7 @@ ${html}</body></html>`);
           const ref = rtdb.ref(`swimLive/${code}`);
           let had = false;
           const fn = snap => {
-            if (!snap.exists() || !(snap.val() && (snap.val().hostUid || snap.val().meetName))) { setSwimWatchError(had ? "This meet has ended. Thanks for watching!" : "Meet not found. Check the code with your host."); setSwimWatchSession(null); try { localStorage.removeItem("swim-watch-last"); } catch (_) {} return; }
+            if (!snap.exists() || !(snap.val() && (snap.val().hostUid || snap.val().meetName))) { setSwimWatchError(had ? "This meet has ended. Thanks for watching!" : quiet ? "" : "Meet not found. Check the code with your host."); setSwimWatchSession(null); try { localStorage.removeItem("swim-watch-last"); } catch (_) {} return; }
             had = true;
             setSwimWatchError("");
             setSwimWatchSession(snap.val());
@@ -4878,17 +4865,17 @@ ${html}</body></html>`);
           let last = null;
           if (effectiveRole === "timer") {
             try { last = JSON.parse(localStorage.getItem("swim-lane-last") || "null"); } catch (_) {}
-            if (fresh(last)) joinLaneTimer(last.code, last.lane);
+            if (fresh(last)) joinLaneTimer(last.code, last.lane, true);
           } else if (effectiveRole === "spectator") {
             try { last = JSON.parse(localStorage.getItem("swim-watch-last") || "null"); } catch (_) {}
-            if (fresh(last)) { setSwimWatchCode(last.code); joinSwimWatchCode(last.code); }
+            if (fresh(last)) { setSwimWatchCode(last.code); joinSwimWatchCode(last.code, true); }
           }
         }, [authLoading, signedIn]);
 
         if (authLoading) return (
           <div style={{ minHeight: "100vh", background: TM.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ textAlign: "center" }}>
-              <TimeathonLockup size={44} wordSize={34} rule />
+              <SwimLockup size={44} wordSize={28} rule />
               <div style={{ fontSize: 14, fontWeight: 800, color: TM.inkMuted, letterSpacing: 1.2, marginTop: 16 }}>LOADING…</div>
             </div>
           </div>
@@ -4904,7 +4891,7 @@ ${html}</body></html>`);
           return (
             <div style={{ minHeight: "100vh", background: TM.bg, color: TM.ink, display: "flex", flexDirection: "column" }}>
               <div style={{ padding: "36px 20px 26px" }}>
-                <TimeathonLockup size={34} wordSize={26} center={false} />
+                <SwimLockup size={34} wordSize={26} center={false} />
                 <h1 style={{ ...TM_DISPLAY, marginTop: 30 }}>What are you<br/>here to do?</h1>
                 <div style={{ fontSize: 16, fontWeight: 600, color: TM.inkMuted, marginTop: 12 }}>
                   We'll remember this. You can switch any time from the top of the screen.
@@ -4941,7 +4928,7 @@ ${html}</body></html>`);
 
         // ── Sign in / create account — hosts and athletes only ──────────────────
         // Spectators skip this entirely unless they ask to sign in.
-              function joinLaneTimer(codeIn, laneIn) {
+              function joinLaneTimer(codeIn, laneIn, silent) {
                 const code = String(codeIn || swimLaneCode).trim().toUpperCase();
                 const lane = laneIn || swimLaneNum;
                 if (!code) { setSwimLaneError("Enter a meet code."); return; }
@@ -4960,7 +4947,7 @@ ${html}</body></html>`);
                   // A node with no host data is one this phone's own heartbeat re-created after the host removed it.
                   if (!snap.exists() || !(snap.val() && (snap.val().hostUid || snap.val().meetName))) {
                     setSwimLaneSession(null);
-                    setSwimLaneError(had ? "The host ended the live session. Thanks for timing!" : "Code not found. Check with the host.");
+                    setSwimLaneError(had ? "The host ended the live session. Thanks for timing!" : silent ? "" : "Code not found. Check with the host.");
                     return;
                   }
                   had = true;
@@ -5061,7 +5048,7 @@ ${html}</body></html>`);
                 <button onClick={() => { setChosenRole(null); setRolePickerOpen(true); try { localStorage.removeItem("tm-role"); } catch (_) {} }}
                   style={{ ...btnStyle("#FFFFFF", true), color: "#FFFFFF", borderColor: "#FFFFFF", minHeight: 44 }}>← Change role</button>
                 <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 1.4, marginTop: 18 }}>HOST</div>
-                <h1 style={{ ...TM_DISPLAY, color: "#FFFFFF", marginTop: 4 }}>Run your meet on Meet-a-thon</h1>
+                <h1 style={{ ...TM_DISPLAY, color: "#FFFFFF", marginTop: 4 }}>Run your meet on swimmeet.studio</h1>
               </div>
               <div style={{ maxWidth: 560, margin: "0 auto", padding: "20px 16px 60px" }}>
                 <div style={{ fontSize: 17, lineHeight: 1.5 }}>
@@ -5108,17 +5095,17 @@ ${html}</body></html>`);
                   style={{ ...btnStyle(TM.ink, true), minWidth: 46, padding: "0 12px", fontSize: 22 }}>←</button>
               ) : null}
               <button onClick={() => { if (isHost) { setView("swim"); setSwimView("home"); window.scrollTo(0, 0); } else goRoleHome(); }}
-                aria-label="Meet-a-thon home"
+                aria-label="swimmeet.studio home"
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer", minWidth: 0,
                          display: "flex", alignItems: "center", gap: 8 }}>
-                <TimeathonMark size={30} />
+                <SwimMark size={30} />
                 {/* No room for the wordmark beside a back arrow on a phone. */}
-                {(isHost || atRoleHome) && <span style={{ ...TM_WORD_STYLE, fontSize: 22 }}>Meet-a-thon</span>}
+                {(isHost || atRoleHome) && <span style={{ ...TM_WORD_STYLE, fontSize: 18, textTransform: "none", letterSpacing: -0.4 }}>swimmeet.studio</span>}
               </button>
               <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={() => setRolePickerOpen(true)}
                   style={{ ...btnStyle(TM.ink, true), padding: "0 12px", fontSize: 15, whiteSpace: "nowrap" }}>
-                  Switch role
+                  Switch
                 </button>
                 {signedIn && (
                   <button onClick={() => setView("profile")} aria-label="Profile" title="Profile"
@@ -6606,7 +6593,7 @@ ${html}</body></html>`);
                                   }} style={{ ...btnStyle(TM.ink), opacity: known.length ? 1 : 0.5 }}>💾 Save times to my swimmers' profiles</button>
                                   {!known.length && <div style={TM_CAPTION}>None of these teams are in your Swim Teams yet.</div>}
                                   <button onClick={() => shareOrDownload(`${safeFileName(swimMeet.meetName)} - results.json`,
-                                      JSON.stringify({ app: "Meet-a-thon", kind: "results", version: 1, meet: { meetName: swimMeet.meetName, date: swimMeet.date || null, meetUid: swimMeet.meetUid || null }, swims }, null, 1))}
+                                      JSON.stringify({ app: "swimmeet.studio", kind: "results", version: 1, meet: { meetName: swimMeet.meetName, date: swimMeet.date || null, meetUid: swimMeet.meetUid || null }, swims }, null, 1))}
                                     style={btnStyle(TM.ink, true)}>⬇ Export results</button>
                                   <SwimLabelsCard meet={swimMeet} />
                                 </div>
@@ -6781,7 +6768,7 @@ ${html}</body></html>`);
                         for (const file of files) {
                           if (/\.json$/i.test(file.name)) {
                             let d = null; try { d = JSON.parse(await file.text()); } catch (_) {}
-                            if (d && ["Meet-a-thon", "Timeathon"].includes(d.app) && d.kind === "athletes") {
+                            if (d && ["swimmeet.studio", "Meet-a-thon", "Timeathon"].includes(d.app) && d.kind === "athletes") {
                               asList(d.teams).forEach(addTeam);
                               const inc = asList(d.athletes);
                               const r1 = addAthletesToLibrary(lib, inc);
@@ -6863,7 +6850,7 @@ ${html}</body></html>`);
                           const list = team ? swimAthletes.filter(a => sameTeam(a.team, team)) : swimAthletes;
                           const tname = team ? safeFileName((swimTeamLib.find(t => t.code === team) || {}).name || team) : "All teams";
                           if (fmt === "csv") return save(`${tname} - athletes.csv`, athletesCsv(list, swimTeamLib));
-                          return save(`${tname} - athletes.json`, JSON.stringify({ app: "Meet-a-thon", kind: "athletes", version: 1, teams: swimTeamLib.filter(t => !team || t.code === team), athletes: list }, null, 1));
+                          return save(`${tname} - athletes.json`, JSON.stringify({ app: "swimmeet.studio", kind: "athletes", version: 1, teams: swimTeamLib.filter(t => !team || t.code === team), athletes: list }, null, 1));
                         }
                         if (section === "events") {
                           if (fmt === "hyv") { exportMeetEvents(); return { ok: true, text: "Saved the Hy-Tek events file (.hyv)." }; }
@@ -6871,7 +6858,7 @@ ${html}</body></html>`);
                         }
                         if (section === "entries") return save(`${nm} - ${team} entries.json`, meetFileText(m, "entries", team));
                         if (section === "program") return save(`${nm} - program.json`, meetFileText(m, "program"));
-                        if (section === "results") return save(`${nm} - results.json`, JSON.stringify({ app: "Meet-a-thon", kind: "results", version: 1,
+                        if (section === "results") return save(`${nm} - results.json`, JSON.stringify({ app: "swimmeet.studio", kind: "results", version: 1,
                           meet: { meetName: m.meetName, date: m.date || null, meetUid: m.meetUid || null }, swims: meetSwims(m) }, null, 1));
                         return null;
                       }
