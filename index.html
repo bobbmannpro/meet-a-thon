@@ -708,6 +708,23 @@
       // Firebase doesn't store empty lists, and can hand a list back as an object,
       // so a race saved with no athletes comes back with no "athletes" at all.
       // Everything that reads saved races and meets goes through these first.
+      // A live session from Firebase: empty heat/lane/leg lists come back missing,
+      // and a half-filled relay's legs come back as an object. Lane positions in
+      // legs matter (medley order), so legs keep their index.
+      // Relay legs by position (leg 1–4); Firebase hands a gappy list back as an object.
+      function legSlots(legs) {
+        if (legs == null) return [null, null, null, null];
+        const a = [null, null, null, null];
+        Object.keys(legs).forEach(k => { if (/^\d+$/.test(k) && +k < 4) a[+k] = legs[k] || null; });
+        return a;
+      }
+      function normLiveSession(v) {
+        if (!v) return v;
+        const legsOf = l => { if (!l || l.legs == null) return l.legs; const o = l.legs, a = [null, null, null, null];
+          Object.keys(o).forEach(k => { if (/^\d+$/.test(k)) a[+k] = o[k] || null; }); return a; };
+        return { ...v, events: asList(v.events).map(ev => ({ ...ev,
+          heats: asList(ev.heats).map(h => ({ ...h, lanes: asList(h.lanes).map(l => l && l.legs != null ? { ...l, legs: legsOf(l) } : l) })) })) };
+      }
       function asList(x) {
         if (Array.isArray(x)) return x.filter(v => v != null);
         return (x && typeof x === "object") ? Object.values(x).filter(v => v != null) : [];
@@ -746,12 +763,15 @@
 
       function parseSeedTime(str) {
         if (!str || str === "NT" || str === "") return null;
-        const clean = str.trim().replace(/^:/, "0:");
-        const m1 = clean.match(/^(\d+):(\d{2})\.(\d{2})$/);
-        if (m1) return (parseInt(m1[1])*60 + parseInt(m1[2]))*1000 + parseInt(m1[3])*10;
-        const m2 = clean.match(/^(\d{1,2})\.(\d{2})$/);
-        if (m2) return parseInt(m2[1])*1000 + parseInt(m2[2])*10;
-        return null;
+        const clean = String(str).trim().toUpperCase().replace(/^:/, "0:");
+        if (clean === "NT") return null;
+        // m:ss.hh, m:ss, m:ss.h, ss.hh, ss.h, ss — and 105.32 (seconds past a minute)
+        const m = clean.match(/^(?:(\d+):)?(\d{1,3})(?:\.(\d{1,2}))?$/);
+        if (!m) return null;
+        const mins = +(m[1] || 0), secs = +m[2], hund = m[3] ? +(m[3] + "0").slice(0, 2) : 0;
+        if (m[1] != null && secs >= 60) return null;
+        const ms = (mins * 60 + secs) * 1000 + hund * 10;
+        return ms > 0 ? ms : null;
       }
 
       function genderLabel(g) {
@@ -1023,6 +1043,19 @@
         return { name: pick.split("/").pop(), text: await zip.files[pick].async("string") };
       }
 
+      // One CSV row, honouring quotes: "Smith, Jr." stays one field.
+      function csvCells(line) {
+        const out = []; let cur = "", q = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (q) { if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+          else if (ch === '"') q = true;
+          else if (ch === ",") { out.push(cur); cur = ""; }
+          else cur += ch;
+        }
+        out.push(cur);
+        return out;
+      }
       function parseSwimCsv(text) {
         const lines = text.split(/\r?\n/).filter(l => l.trim());
         if (lines.length < 2) return { meetName: "Imported Meet", events: [], meetEntries: [] };
@@ -1030,14 +1063,14 @@
         // "Last Name" vs "lastname"), so match on a space/underscore-stripped form
         // and accept a list of aliases per field.
         const norm = (s) => s.trim().toLowerCase().replace(/[\s_#]+/g, "");
-        const headers = lines[0].split(",").map(norm);
+        const headers = csvCells(lines[0]).map(norm);
         const events = {};
         const swimmers = {};
         let idCounter = 0;
         const autoEventNums = {};   // composite event key → assigned event number
         let autoEventCount = 0;
         for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(",").map(c => c.trim());
+          const cols = csvCells(lines[i]).map(c => c.trim());
           const get = (...names) => {
             for (const n of names) {
               const j = headers.indexOf(norm(n));
@@ -1054,7 +1087,9 @@
           const team      = get("team", "club", "school");
           const age       = parseInt(get("age"), 10) || 0;
           const seedTime  = seedMs ? formatSwimTime(seedMs) : (seedTimeStr || "NT");
-          const gender    = get("gender", "sex") || "Mixed";
+          const gRaw      = get("gender", "sex");
+          // F / M / Female / Girls / Boys all mean the same thing to the swimmer library.
+          const gender    = /^(f|g|w)/i.test(gRaw) ? "Girls" : /^(m(?!ix)|b)/i.test(gRaw) ? "Boys" : (gRaw || "Mixed");
           const ageGroup  = get("agegroup", "division", "div") || "Open";
           const distance  = parseInt(get("distance", "dist"), 10) || 100;
           const stroke    = get("stroke") || "Freestyle";
@@ -1106,6 +1141,13 @@
         };
       }
 
+      // Tied times share a place and split the points for the places they cover.
+      function tiePlace(list, i) { return list.findIndex(x => x.finalMs === list[i].finalMs) + 1; }
+      function tiePoints(list, i, pts) {
+        const first = tiePlace(list, i) - 1, n = list.filter(x => x.finalMs === list[i].finalMs).length;
+        const share = pts.slice(first, first + n).reduce((t, p) => t + p, 0) / n;
+        return share ? +share.toFixed(1) : "";
+      }
       function computeTeamScores(events) {
         const scores = {};
         const pts = [6, 4, 3, 2, 1];
@@ -1114,10 +1156,12 @@
           const finishers = allSwimmers
             .filter(s => s.finalMs != null && !s.dq && !s.scratch)
             .sort((a,b) => a.finalMs - b.finalMs);
-          finishers.forEach((s, i) => {
-            if (i < pts.length) {
-              scores[s.team] = (scores[s.team] || 0) + pts[i];
-            }
+          // A tie shares the places it covers: two tied for 1st get (6+4)/2 each.
+          finishers.forEach(s => {
+            const first = finishers.findIndex(f => f.finalMs === s.finalMs);
+            const n = finishers.filter(f => f.finalMs === s.finalMs).length;
+            const share = pts.slice(first, first + n).reduce((t, p) => t + p, 0) / n;
+            if (share) scores[s.team] = (scores[s.team] || 0) + share;
           });
         }
         return Object.entries(scores).sort((a,b) => b[1] - a[1]);
@@ -1174,7 +1218,9 @@
       // When an input actually happened (finger down, key down), in epoch ms —
       // not when the code got round to handling it.
       function eventEpoch(e) {
-        return e && e.timeStamp > 0 && performance.timeOrigin ? performance.timeOrigin + e.timeStamp : Date.now();
+        const t = e && e.timeStamp > 0 && performance.timeOrigin ? performance.timeOrigin + e.timeStamp : Date.now();
+        // After the phone sleeps, some browsers' performance clock lags the wall clock.
+        return Math.abs(t - Date.now()) < 2000 ? t : Date.now();
       }
 
       // The start: "Take your marks" spoken from the host device, then the
@@ -1270,15 +1316,23 @@
         if (rawEntries.length === 0) return event.heats;
 
         const timed = rawEntries.filter(e => e.seedMs != null).sort((a, b) => a.seedMs - b.seedMs);
-        const nt = rawEntries.filter(e => e.seedMs == null).sort(() => Math.random() - 0.5);
+        // Same order every time, so re-seeding after a scratch doesn't reshuffle NT lanes.
+        const nm = e => (e.name || `${e.firstName || ""} ${e.lastName || ""}`).trim().toLowerCase();
+        const nt = rawEntries.filter(e => e.seedMs == null).sort((a, b) => nm(a).localeCompare(nm(b)));
         const allSorted = [...nt, ...[...timed].reverse()];
 
         const numHeats = Math.max(1, Math.ceil(allSorted.length / numLanes));
         const laneOrder = getLaneOrder(numLanes);
         const heats = [];
 
+        // Fast heats are full; the short heat is the first (slowest) one, topped up
+        // to three swimmers from the next heat where there are enough.
+        const sizes = Array(numHeats).fill(numLanes);
+        sizes[0] = allSorted.length - (numHeats - 1) * numLanes;
+        if (numHeats > 1 && sizes[0] < 3) { const moved = Math.min(3 - sizes[0], numLanes - 3); if (moved > 0) { sizes[0] += moved; sizes[1] -= moved; } }
+        let at = 0;
         for (let hi = 0; hi < numHeats; hi++) {
-          const chunk = allSorted.slice(hi * numLanes, (hi + 1) * numLanes);
+          const chunk = allSorted.slice(at, at + sizes[hi]); at += sizes[hi];
           const sortedChunk = [...chunk].sort((a, b) => (a.seedMs ?? Infinity) - (b.seedMs ?? Infinity));
           const lanes = sortedChunk.map((sw, idx) => ({
             lane: laneOrder[idx],
@@ -2123,7 +2177,7 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:4px 6px;
             const ent = (meet.meetEntries || []).find(e => e.id === l.entryId) || (meet.meetEntries || []).find(e => e.name === l.name && e.team === l.team);
             out.push({ name: l.name, firstName: l.firstName, lastName: l.lastName, team: l.team, gender: ent ? ent.gender : (ev.gender.startsWith("M") ? "" : ev.gender),
               age: l.age || null, dob: ent ? ent.dob : null, distance: ev.distance, stroke: ev.stroke, course: ev.course || meet.pool || "25y",
-              timeMs: l.dq ? null : l.finalMs, dq: !!l.dq, place: l.dq ? null : ranked.findIndex(x => x.l === l) + 1,
+              timeMs: l.dq ? null : l.finalMs, dq: !!l.dq, place: l.dq ? null : ranked.findIndex(x => x.l.finalMs === l.finalMs) + 1,
               date: meet.date || new Date().toLocaleDateString("en-CA"), meetName: meet.meetName || "Swim Meet", eventLabel: evLabel(ev) });
           });
         });
@@ -2469,6 +2523,9 @@ ${html}</body></html>`);
             const seeds = (l.slice(42, 62).match(/(\d+:)?\d+\.\d\d/g) || []).map(t2ms).filter(x => x > 0);
             const nx = lines[i + 1] || "";
             const res = nx.startsWith("E2") ? t2ms(nx.slice(3, 11)) : null;
+            // A DQ / no-show / scratch still carries a time; it mustn't become a best time.
+            const voided = nx.startsWith("E2") && /\b(DQ|NS|SCR|DNF|DFS)\b/i.test(nx.slice(12, 24));
+            if (voided) continue;
             if (res > 0) {
               const tok = nx.slice(12).trim().split(/\s+/);
               swims.push({ ...a, ...base, course: { Y: "25y", S: "25m", L: "50m" }[nx.charAt(11)] || "25y", timeMs: res, place: +tok[4] || null, date, meetName });
@@ -3407,6 +3464,7 @@ ${html}</body></html>`);
         const swimLaneClockRef = useRef(null);
         const [swimLaneClockMs, setSwimLaneClockMs] = useState(0);
         const swimLanePrevStatusRef = useRef(null);
+        const swimLanePrevStartRef = useRef(null);
 
         // Host clicker state
         // Lane buttons that act as a keyboard: { lane, key } chosen on this device,
@@ -3573,7 +3631,11 @@ ${html}</body></html>`);
           if (curr === "waiting") setSwimLaneFinished(false);
           if (curr === "waiting" && prev && prev !== "waiting" && swimLaneCode)
             syncServerClock(`swimLive/${swimLaneCode}/clock/lane${swimLaneNum}`).then(err => { if (err) setSwimLaneClockErr(err); });
-          if (curr === "racing" && prev !== "racing" && !(swimLaneSession.results && swimLaneSession.results[swimLaneNum])) setSwimLaneFinished(false);
+          // A new start, even when the phone slept through the "waiting" between heats
+          // and only ever saw racing → racing with a different start time.
+          const newStart = swimLaneSession.startedAt && swimLaneSession.startedAt !== swimLanePrevStartRef.current;
+          swimLanePrevStartRef.current = swimLaneSession.startedAt || null;
+          if (curr === "racing" && (prev !== "racing" || newStart) && !(swimLaneSession.results && swimLaneSession.results[swimLaneNum])) setSwimLaneFinished(false);
         }, [swimLaneSession?.status, swimLaneSession?.startedAt]);
 
         // Lane timer: tell the host this lane is covered, every second.
@@ -3585,8 +3647,15 @@ ${html}</body></html>`);
           try { ref.onDisconnect().remove(); } catch (_) {}
           beat();
           const id = setInterval(beat, 1000);
-          return () => { clearInterval(id); ref.remove().catch(() => {}); };
+          // Cancel the server-side remove too, or after a lane change this phone's
+          // dropout would delete the next volunteer's heartbeat for this lane.
+          return () => { clearInterval(id); try { ref.onDisconnect().cancel(); } catch (_) {} ref.remove().catch(() => {}); };
         }, [view, !!swimLaneSession, swimLaneCode, swimLaneNum]);
+        // Reopened mid-heat after this lane already finished: keep STOP locked.
+        useEffect(() => {
+          const r = swimLaneSession && swimLaneSession.results && swimLaneSession.results[swimLaneNum];
+          if (swimLaneSession?.status === "racing" && r && r.finalMs != null) setSwimLaneFinished(true);
+        }, [swimLaneSession?.status, swimLaneSession?.results, swimLaneNum]);
         useTicker(view === "swimlane" && !!swimLaneSession);
 
         // Lane timer: keep the phone's screen on while it's timing a lane.
@@ -3624,7 +3693,7 @@ ${html}</body></html>`);
             if (triggered && !swimLaneFinished && swimLaneSession.status === "racing") {
               e.preventDefault();
               const finalMs = Math.max(0, Math.round(eventEpoch(e) + SERVER_CLOCK.offset - swimLaneSession.startedAt));
-              rtdb.ref(`swimLive/${code}/results/${swimLaneNum}`).update({ finalMs }).catch(console.error);
+              rtdb.ref(`swimLive/${code}/results/${swimLaneNum}`).update({ finalMs, ev: swimLaneSession.activeEvent ?? null, ht: swimLaneSession.activeHeat ?? null }).catch(console.error);
               setSwimLaneFinished(true);
             }
           };
@@ -3648,7 +3717,10 @@ ${html}</body></html>`);
                 setSwimMeet(m => ({ ...m, events: m.events.map(ev => ev.eventNum !== swimActiveEvent ? ev : { ...ev,
                   heats: ev.heats.map(h => h.heatNum !== swimActiveHeat ? h : { ...h, lanes: h.lanes.map(s => s.lane !== parseInt(lane) ? s : { ...s, dq: !!data.dqFromLane }) }) }) }));
               }
-              if (data && data.finalMs != null) {
+              // A finish tagged for another heat (sent as the host moved on, or queued
+              // while the phone was offline) mustn't land on this heat's swimmer.
+              const otherHeat = data && data.ev != null && (String(data.ev) !== String(swimActiveEvent) || String(data.ht) !== String(swimActiveHeat));
+              if (data && data.finalMs != null && !otherHeat) {
                 setSwimMeet(m => ({
                   ...m,
                   events: m.events.map(ev => ev.eventNum !== swimActiveEvent ? ev : {
@@ -3864,7 +3936,7 @@ ${html}</body></html>`);
                   setEditProfile({ firstName: data.profile.firstName || "", lastName: data.profile.lastName || "", birthday: data.profile.birthday || "", gender: data.profile.gender || "", role: data.profile.role || "athlete" });
                   localStorage.setItem("tri-user-profile", JSON.stringify(data.profile));
                 } else {
-                  try { const c = localStorage.getItem("tri-user-profile"); if (c) { const p = JSON.parse(c); setUserProfile(p); setEditProfile({ firstName: p.firstName || "", lastName: p.lastName || "", birthday: p.birthday || "", gender: p.gender || "", role: p.role || "athlete" }); const role = p.role || "athlete"; if (!roleFreshRef.current) setView(role === "host" ? "myraces" : role === "spectator" ? "spectate" : role === "timer" ? "swimlane" : "join"); } } catch(_) {}
+                  try { const c = localStorage.getItem("tri-user-profile"); if (c) { const p = JSON.parse(c); setUserProfile(p); setEditProfile({ firstName: p.firstName || "", lastName: p.lastName || "", birthday: p.birthday || "", gender: p.gender || "", role: p.role || "athlete" }); const role = p.role || "athlete"; if (!roleFreshRef.current) setView(roleLanding(role)); } } catch(_) {}
                 }
 
                 // Swim meets and swimmers: the account's copy wins, so a meet set up
@@ -4043,13 +4115,13 @@ ${html}</body></html>`);
               if (a.finalMs != null && b.finalMs != null) return a.finalMs - b.finalMs;
               if (a.finalMs != null) return -1; return 1;
             });
-            const rows = sorted.map(sw => `<tr><td style="text-align:center">${sw.lane}</td><td>${sw.name||''}${(sw.legs||[]).some(Boolean)?`<div style="font-size:12px;color:#555">${sw.legs.map((l,k)=>l?`${k+1}. ${l.name}`:'').filter(Boolean).join(', ')}</div>`:''}</td><td style="text-align:center">${sw.age||''}</td><td>${sw.team||''}</td><td>${sw.seedTime||'NT'}</td><td style="font-weight:700;color:${sw.dq?'#c00':sw.finalMs!=null?'#0B3FCC':'#999'}">${sw.dq?'DQ':sw.scratch?'SCR':sw.finalMs!=null?formatSwimTime(sw.finalMs):'--'}</td></tr>`).join('');
+            const rows = sorted.map(sw => `<tr><td style="text-align:center">${sw.lane}</td><td>${escHtml(sw.name||'')}${(sw.legs||[]).some(Boolean)?`<div style="font-size:12px;color:#555">${sw.legs.map((l,k)=>l?`${k+1}. ${escHtml(l.name)}`:'').filter(Boolean).join(', ')}</div>`:''}</td><td style="text-align:center">${escHtml(sw.age||'')}</td><td>${escHtml(sw.team||'')}</td><td>${escHtml(sw.seedTime||'NT')}</td><td style="font-weight:700;color:${sw.dq?'#c00':sw.finalMs!=null?'#0B3FCC':'#999'}">${sw.dq?'DQ':sw.scratch?'SCR':sw.finalMs!=null?formatSwimTime(sw.finalMs):'--'}</td></tr>`).join('');
             return `<h4 style="margin:16px 0 6px;color:#333">Heat ${ht.heatNum}</h4><table><thead><tr><th>Ln</th><th>Name</th><th>Age</th><th>Team</th><th>Seed</th><th>Final</th></tr></thead><tbody>${rows}</tbody></table>`;
           }).join('');
-          const standingRows = finishers.map((sw, i) => `<tr><td style="text-align:center;font-weight:700">${i+1}</td><td>${sw.name||''}${(sw.legs||[]).some(Boolean)?`<div style="font-size:12px;color:#555">${sw.legs.map((l,k)=>l?`${k+1}. ${l.name}`:'').filter(Boolean).join(', ')}</div>`:''}</td><td style="text-align:center">${sw.age||''}</td><td>${sw.team||''}</td><td>${sw.seedTime||'NT'}</td><td style="font-weight:700;color:#0B3FCC">${formatSwimTime(sw.finalMs)}</td><td style="text-align:center;font-weight:700">${i<pts.length?pts[i]:''}</td></tr>`).join('') +
-            dqs.map(sw => `<tr><td style="text-align:center;color:#c00">DQ</td><td colspan="5" style="color:#c00">${sw.name} — ${sw.team}</td><td></td></tr>`).join('');
+          const standingRows = finishers.map((sw, i) => `<tr><td style="text-align:center;font-weight:700">${tiePlace(finishers, i)}</td><td>${escHtml(sw.name||'')}${(sw.legs||[]).some(Boolean)?`<div style="font-size:12px;color:#555">${sw.legs.map((l,k)=>l?`${k+1}. ${escHtml(l.name)}`:'').filter(Boolean).join(', ')}</div>`:''}</td><td style="text-align:center">${escHtml(sw.age||'')}</td><td>${escHtml(sw.team||'')}</td><td>${escHtml(sw.seedTime||'NT')}</td><td style="font-weight:700;color:#0B3FCC">${formatSwimTime(sw.finalMs)}</td><td style="text-align:center;font-weight:700">${tiePoints(finishers, i, pts)}</td></tr>`).join('') +
+            dqs.map(sw => `<tr><td style="text-align:center;color:#c00">DQ</td><td colspan="5" style="color:#c00">${escHtml(sw.name)} — ${escHtml(sw.team)}</td><td></td></tr>`).join('');
           const win = window.open("","_blank");
-          win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${meetName||'Meet Results'}</title><style>body{font-family:Arial,sans-serif;font-size:14px;color:#111;padding:20px}h1{font-size:16px;margin:0 0 4px}h2{font-size:14px;color:#555;font-weight:400;margin:0 0 16px}h3{font-size:14px;margin:20px 0 6px;border-bottom:2px solid #0B3FCC;padding-bottom:4px;color:#0B3FCC}h4{font-size:14px;margin:12px 0 4px;color:#333}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{padding:5px 8px;border-bottom:2px solid #ddd;text-align:left}th{background:#f0f0f0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px}@media print{button{display:none}}</style></head><body><h1>${meetName||'Meet Results'}</h1><h2>${ev.gender} ${ev.ageGroup} ${ev.distance} ${ev.stroke} — ${ev.course}</h2><h3>Heat-by-Heat Results</h3>${heatRows}<h3>Overall Event Standings</h3><table><thead><tr><th>Pl</th><th>Name</th><th>Age</th><th>Team</th><th>Seed</th><th>Final</th><th>Pts</th></tr></thead><tbody>${standingRows}</tbody></table><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer">Print</button><script>window.onload=()=>{window.print();}<\/script></body></html>`);
+          win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escHtml(meetName||'Meet Results')}</title><style>body{font-family:Arial,sans-serif;font-size:14px;color:#111;padding:20px}h1{font-size:16px;margin:0 0 4px}h2{font-size:14px;color:#555;font-weight:400;margin:0 0 16px}h3{font-size:14px;margin:20px 0 6px;border-bottom:2px solid #0B3FCC;padding-bottom:4px;color:#0B3FCC}h4{font-size:14px;margin:12px 0 4px;color:#333}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{padding:5px 8px;border-bottom:2px solid #ddd;text-align:left}th{background:#f0f0f0;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:0.5px}@media print{button{display:none}}</style></head><body><h1>${escHtml(meetName||'Meet Results')}</h1><h2>${escHtml(ev.gender)} ${escHtml(ev.ageGroup)} ${ev.distance} ${escHtml(ev.stroke)} — ${escHtml(ev.course)}</h2><h3>Heat-by-Heat Results</h3>${heatRows}<h3>Overall Event Standings</h3><table><thead><tr><th>Pl</th><th>Name</th><th>Age</th><th>Team</th><th>Seed</th><th>Final</th><th>Pts</th></tr></thead><tbody>${standingRows}</tbody></table><button onclick="window.print()" style="margin-top:16px;padding:8px 20px;cursor:pointer">Print</button><script>window.onload=()=>{window.print();}<\/script></body></html>`);
           win.document.close();
         }
 
@@ -4059,7 +4131,7 @@ ${html}</body></html>`);
           const finishers = allSwimmers.filter(s => s.finalMs != null && !s.dq && !s.scratch).sort((a,b) => a.finalMs - b.finalMs).slice(0, 8);
           const places = ["1st","2nd","3rd","4th","5th","6th","7th","8th"];
           const placeColors = ["#8A5A00","#3D434B","#B44A00","#555","#555","#555","#555","#555"];
-          const labels = finishers.map((sw, i) => `<div class="label"><div class="place" style="color:${placeColors[i]}">${places[i]} Place</div><div class="name">${sw.name||''}</div><div class="detail">${ev.distance} ${ev.stroke} &mdash; ${ev.gender} ${ev.ageGroup}</div><div class="detail">${sw.team||''} &middot; Heat ${sw.heatNum} &middot; Lane ${sw.lane}</div><div class="time">${formatSwimTime(sw.finalMs)}</div></div>`).join('');
+          const labels = finishers.map((sw, i) => `<div class="label"><div class="place" style="color:${placeColors[tiePlace(finishers, i) - 1]}">${places[tiePlace(finishers, i) - 1]} Place</div><div class="name">${escHtml(sw.name||'')}</div><div class="detail">${ev.distance} ${escHtml(ev.stroke)} &mdash; ${escHtml(ev.gender)} ${escHtml(ev.ageGroup)}</div><div class="detail">${escHtml(sw.team||'')} &middot; Heat ${sw.heatNum} &middot; Lane ${sw.lane}</div><div class="time">${formatSwimTime(sw.finalMs)}</div></div>`).join('');
           const win = window.open("","_blank");
           win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ribbon Labels</title><style>*{box-sizing:border-box;margin:0;padding:0}@page{size:landscape;margin:10mm}body{font-family:Arial,sans-serif;background:#fff}.grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,auto);gap:8px;padding:4px}.label{border:2px solid #ccc;border-radius:6px;padding:10px 14px;height:90px;display:flex;flex-direction:column;justify-content:center;gap:2px;page-break-inside:avoid}.place{font-size:18px;font-weight:900;letter-spacing:2px;text-transform:uppercase}.name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.detail{font-size:14px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.time{font-size:14px;font-weight:700;color:#0B3FCC;margin-top:2px}@media print{button{display:none}}</style></head><body><div class="grid">${labels}</div><button onclick="window.print()" style="display:block;margin:16px auto;padding:8px 20px;cursor:pointer">Print Labels</button><script>window.onload=()=>{window.print();}<\/script></body></html>`);
           win.document.close();
@@ -4789,7 +4861,7 @@ ${html}</body></html>`);
           if (d.kind === "results") d.meet.events = d.meet.events || [];
           const fm = d.meet;
           const evs = asList(fm.events).map(ev => ({ ...ev, entries: asList(ev.entries), heats: asList(ev.heats).map(h => ({ ...h, lanes: asList(h.lanes).map(l => ({ ...l, legs: l.legs ? asList(l.legs) : null })) })) }));
-          const relaysOf = list => asList(list).map(r => ({ ...r, legs: asList(r.legs) }));
+          const relaysOf = list => asList(list).map(r => ({ ...r, legs: legSlots(r.legs) }));
           const entriesOf = list => asList(list).map(e => ({ ...e, events: asList(e.events) }));
           const info = { meetName: fm.meetName, date: fm.date, facility: fm.facility, pool: fm.pool, lanes: fm.lanes, ageUpDate: fm.ageUpDate, meetUid: fm.meetUid, teams: asList(fm.teams) };
           if (d.kind === "entries") {
@@ -4844,7 +4916,7 @@ ${html}</body></html>`);
             if (!snap.exists() || !(snap.val() && (snap.val().hostUid || snap.val().meetName))) { setSwimWatchError(had ? "This meet has ended. Thanks for watching!" : quiet ? "" : "Meet not found. Check the code with your host."); setSwimWatchSession(null); try { localStorage.removeItem("swim-watch-last"); } catch (_) {} return; }
             had = true;
             setSwimWatchError("");
-            setSwimWatchSession(snap.val());
+            setSwimWatchSession(normLiveSession(snap.val()));
           };
           ref.on("value", fn);
           swimWatchListenerRef.current = { ref, fn };
@@ -4951,7 +5023,7 @@ ${html}</body></html>`);
                   }
                   had = true;
                   setSwimLaneError("");
-                  setSwimLaneSession(snap.val());
+                  setSwimLaneSession(normLiveSession(snap.val()));
                 };
                 const errFn = err => {
                   setSwimLaneConnecting(false);
@@ -5346,7 +5418,7 @@ ${html}</body></html>`);
                       ...ev,
                       heats: ev.heats.map(h => h.heatNum !== heatNum ? h : {
                         ...h,
-                        lanes: h.lanes.map(sw => sw.lane !== lane ? sw : { ...sw, finalMs: t })
+                        lanes: h.lanes.map(sw => sw.lane !== lane || sw.finalMs != null ? sw : { ...sw, finalMs: t })   // a second tap or a bounce keeps the first time
                       })
                     })
                   }));
@@ -5359,7 +5431,7 @@ ${html}</body></html>`);
                       ...ev,
                       heats: ev.heats.map(h => h.heatNum !== heatNum ? h : {
                         ...h,
-                        lanes: h.lanes.map(sw => sw.lane !== lane ? sw : { ...sw, dq: !sw.dq, finalMs: sw.dq ? sw.finalMs : null })
+                        lanes: h.lanes.map(sw => sw.lane !== lane ? sw : { ...sw, dq: !sw.dq })
                       })
                     })
                   }));
@@ -5478,7 +5550,7 @@ ${html}</body></html>`);
                 }
                 function loadSwimMeet(meet) {
                   setSwimMeet({ meetName: meet.meetName, pool: meet.pool, lanes: meet.lanes || 8, events: normSavedMeets([meet])[0].events, meetEntries: asList(meet.meetEntries), _id: meet.id, code: meet.code || friendlyCode(),
-                    date: meet.date || null, facility: meet.facility || null, teams: asList(meet.teams), relays: asList(meet.relays).map(r => ({ ...r, legs: asList(r.legs) })), ageUpDate: meet.ageUpDate || null, meetUid: meet.meetUid || null, anyAge: !!meet.anyAge,
+                    date: meet.date || null, facility: meet.facility || null, teams: asList(meet.teams), relays: asList(meet.relays).map(r => ({ ...r, legs: legSlots(r.legs) })), ageUpDate: meet.ageUpDate || null, meetUid: meet.meetUid || null, anyAge: !!meet.anyAge,
                     startTime: meet.startTime || null, liveLeadMin: meet.liveLeadMin ?? null });
                   setSwimLiveCode(null);
                   setSwimSetupStep(0);
@@ -5625,6 +5697,16 @@ ${html}</body></html>`);
                   } else {
                     parsed = parseSwimCsv(text);
                   }
+                  // Nothing usable: never wipe the meet. Team Manager / results .hy3 and .cl2
+                  // files hold swimmers and times, not events — they belong under Swim Teams.
+                  if (!parsed || !(parsed.events || []).length) {
+                    setSwimImportMsg({ ok: false, text: /\.(hy3|cl2)$/i.test(name)
+                      ? "No events in that file — it looks like a team or results file. Import it under Swim Teams; events come from the meet's .hyv (or the whole .zip)."
+                      : "No events found in that file." });
+                    return;
+                  }
+                  const had = (swimMeet.events || []).length;
+                  if (had && !window.confirm(`Replace the ${had} event${had === 1 ? "" : "s"} you have with the ${parsed.events.length} in “${name}”? Swimmers already entered will be replaced too.`)) return;
                   // Link meetEntries to existing swimAthletes by name; create new profiles for unknowns
                   const rawEntries = parsed.meetEntries || [];
                   const newProfiles = [];
@@ -6293,7 +6375,7 @@ ${html}</body></html>`);
                       return (
                         <WizardFrame step={st} titles={SWIM_STEPS} title={SWIM_STEPS[st - 1]}
                           onJump={setSwimSetupStep} onList={() => setSwimSetupStep(0)}
-                          onBack={st > 1 ? () => setSwimSetupStep(st - 1) : () => setView("myraces")}
+                          onBack={st > 1 ? () => setSwimSetupStep(st - 1) : () => { setView("swim"); setSwimView("home"); }}
                           onNext={st === 5 ? () => setSwimView("race") : () => { if (st === 1 && codeBlocksNext) return; setSwimSetupStep(st + 1); }}
                           nextLabel={st === 5 ? "Go to race →" : "Next →"}
                           nextDisabled={st === 5 && nEvents === 0}
@@ -6386,10 +6468,12 @@ ${html}</body></html>`);
                                   </button>
                                 </>) : (
                                   <>
-                                    <button onClick={() => setSwimClockRunning(r => !r)}
+                                    {/* Live, the lane phones time from the start signal and can't pause:
+                                        pausing here would put the host clock seconds behind theirs. */}
+                                    {!swimLiveCode && <button onClick={() => setSwimClockRunning(r => !r)}
                                       style={{ ...btnStyle(swimClockRunning ? "#8A5A00" : "#0B3FCC"), fontSize:14, padding:"8px 20px" }}>
                                       {swimClockRunning ? "⏸ Pause" : "▶ Resume"}
-                                    </button>
+                                    </button>}
                                     <button onClick={restartHeat}
                                       style={{ ...btnStyle("#B3001B", true), fontSize:14, padding:"8px 16px" }}>
                                       ↺ Reset
@@ -6607,7 +6691,7 @@ ${html}</body></html>`);
                               const finishers = allSwimmers.filter(s => s.finalMs != null && !s.dq && !s.scratch).sort((a,b) => a.finalMs - b.finalMs);
                               const dqs = allSwimmers.filter(s => s.dq);
                               const scratches = allSwimmers.filter(s => s.scratch && !s.dq);
-                              const dnf = allSwimmers.filter(s => s.finalMs == null && !s.dq && !s.scratch);
+                              const dnf = allSwimmers.filter(s => s.name && s.finalMs == null && !s.dq && !s.scratch);
                               const pts = [6,4,3,2,1];
 
                               return (
@@ -6663,13 +6747,13 @@ ${html}</body></html>`);
                                       <tbody>
                                         {finishers.map((sw, i) => (
                                           <tr key={`${sw.heatNum}-${sw.lane}`} style={{ background: i % 2 === 0 ? "transparent" : "#EFEDE8" }}>
-                                            <td style={{ textAlign:"center", padding:"5px 6px", fontWeight:700, color: i === 0 ? "#8A5A00" : i === 1 ? "#3D434B" : i === 2 ? "#B44A00" : "#0B0D10" }}>{i+1}</td>
+                                            <td style={{ textAlign:"center", padding:"5px 6px", fontWeight:700, color: i === 0 ? "#8A5A00" : i === 1 ? "#3D434B" : i === 2 ? "#B44A00" : "#0B0D10" }}>{tiePlace(finishers, i)}</td>
                                             <td style={{ padding:"5px 6px", color:"#0B0D10" }}>{sw.name}{(sw.legs || []).some(Boolean) && <div style={{ fontSize: 12, color: "#3D434B" }}>{sw.legs.map((l, k) => l ? `${k + 1}. ${l.name}` : "").filter(Boolean).join(", ")}</div>}</td>
                                             <td style={{ textAlign:"center", padding:"5px 6px", color:"#3D434B" }}>{sw.age}</td>
                                             <td style={{ padding:"5px 6px", color:"#3D434B" }}>{sw.team}</td>
                                             <td style={{ padding:"5px 6px", color:"#3D434B" }}>{sw.seedTime || "NT"}</td>
                                             <td style={{ padding:"5px 6px", fontWeight:700, color:"#0B3FCC" }}>{formatSwimTime(sw.finalMs)}</td>
-                                            <td style={{ textAlign:"center", padding:"5px 6px", fontWeight:700, color:"#8A5A00" }}>{i < pts.length ? pts[i] : ""}</td>
+                                            <td style={{ textAlign:"center", padding:"5px 6px", fontWeight:700, color:"#8A5A00" }}>{tiePoints(finishers, i, pts)}</td>
                                           </tr>
                                         ))}
                                         {dqs.map(sw => (
@@ -7035,7 +7119,7 @@ ${html}</body></html>`);
                 if (status !== "racing" || swimLaneFinished || !swimLaneSession.startedAt) return;
                 const finalMs = Math.max(0, Math.round(eventEpoch(e) + SERVER_CLOCK.offset - swimLaneSession.startedAt));
                 if (navigator.vibrate) { try { navigator.vibrate(60); } catch (_) {} }
-                rtdb.ref(`swimLive/${swimLaneCode}/results/${swimLaneNum}`).update({ finalMs }).catch(console.error);
+                rtdb.ref(`swimLive/${swimLaneCode}/results/${swimLaneNum}`).update({ finalMs, ev: swimLaneSession.activeEvent ?? null, ht: swimLaneSession.activeHeat ?? null }).catch(console.error);
                 setSwimLaneFinished(true);
               }
 
@@ -7413,7 +7497,7 @@ ${html}</body></html>`);
                       {session.heatResults && Object.keys(session.heatResults).length > 0 && (
                         <div style={{ marginTop:16 }}>
                           <div style={{ fontSize:14, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color:"#3D434B", marginBottom:10 }}>Completed Heats</div>
-                          {Object.entries(session.heatResults).sort().map(([key, results]) => {
+                          {Object.entries(session.heatResults).sort(([a], [b]) => { const [ae, ah] = a.split("_").map(Number), [be, bh] = b.split("_").map(Number); return ae - be || ah - bh; }).map(([key, results]) => {
                             const [evNum, htNum] = key.split("_").map(Number);
                             const ev = session.events?.find(e => e.eventNum === evNum);
                             const ht = ev?.heats.find(h => h.heatNum === htNum);
