@@ -5399,7 +5399,7 @@ ${html}</body></html>`);
             {/* NAV — hosts only. Athletes and spectators move with a back arrow. */}
             {isHost && (() => {
               const swimNavMap = { swimhome:"home", swimsetup:"setup", swimrace:"race", swimresults:"results", swimathletes:"athletes", swimfiles:"files", swimdevices:"devices" };
-              const navTabs = [["swimhome","Meets"],["swimsetup","Setup"],["swimrace","Race"],["swimresults","Results"],["swimathletes","Swim Teams"],["swimfiles","Import / Export"],["swimdevices","Devices"]];
+              const navTabs = [["swimhome","Meets"],["swimsetup","Setup"],["swimrace","Race"],["swimresults","Results"]];
               return (
                 <nav className="tm-nav-wrap" aria-label="Host">
                 <div className="tm-nav" ref={navStripRef}>
@@ -5488,31 +5488,6 @@ ${html}</body></html>`);
                         <div style={{ fontSize: 14, color: "#3D434B", marginBottom: 4 }}>Email</div>
                         <input value={currentUser?.email || ""} disabled
                           style={{ width: "100%", background: "#FFFFFF", border: "2px solid #C9C5BC", borderRadius: 6, padding: "9px 12px", color: "#3D434B", fontSize: 14, outline: "none" }} />
-                      </div>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, color: "#3D434B", marginBottom: 4 }}>Birthday{editProfile.birthday && calcAge(editProfile.birthday) !== null ? ` · Age ${calcAge(editProfile.birthday)}` : ""}</div>
-                          <input type="date" value={editProfile.birthday} onChange={e => setEditProfile(p => ({ ...p, birthday: e.target.value }))}
-                            style={{ width: "100%", background: "#FFFFFF", border: "2px solid #C9C5BC", borderRadius: 6, padding: "9px 10px", color: "#0B0D10", fontSize: 14, outline: "none", colorScheme: "light" }} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, color: "#3D434B", marginBottom: 4 }}>Gender</div>
-                          <select value={editProfile.gender} onChange={e => setEditProfile(p => ({ ...p, gender: e.target.value }))}
-                            style={{ width: "100%", background: "#FFFFFF", border: "2px solid #C9C5BC", borderRadius: 6, padding: "9px 10px", color: "#0B0D10", fontSize: 14, outline: "none", cursor: "pointer" }}>
-                            <option value="">Select…</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Non-binary">Non-binary</option>
-                            <option value="Prefer not to say">Prefer not to say</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div style={{ ...rowStyle(isHost ? TM.swim : effectiveRole === "timer" ? TM.ink : TM.run), display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={TM_LABEL}>Role</div>
-                          <div style={{ fontSize: 17, fontWeight: 800 }}>{isHost ? "Host" : effectiveRole === "timer" ? "Lane timer" : "Parent"}</div>
-                        </div>
-                        <button onClick={() => setRolePickerOpen(true)} style={btnStyle(TM.ink, true)}>Switch role</button>
                       </div>
                       <button onClick={async () => {
                         setProfileSaving(true); setProfileSaved(false); setProfileError("");
@@ -6105,20 +6080,9 @@ ${html}</body></html>`);
                             <div style={{ marginLeft:"auto", fontSize:22, color:"#04613F" }}>→</div>
                           </button>
 
-                          <button onClick={() => setSwimHomeSection(swimHomeSection === "meets" ? null : "meets")}
-                            style={{ background:"#EFEDE8", border:"2px solid #8A5A00", borderRadius:8, padding:"22px 24px", textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:18 }}>
-                            <div style={{ fontSize:40, lineHeight:1 }}>📋</div>
-                            <div>
-                              <div style={{ fontFamily:"var(--tm-font)", fontSize:26, letterSpacing:0.5, color:"#8A5A00" }}>Existing Meets</div>
-                              <div style={{ fontSize:14, color:"#3D434B", marginTop:2 }}>
-                                {swimSavedMeets.length === 0 ? "No saved meets yet" : `${swimSavedMeets.length} saved meet${swimSavedMeets.length !== 1 ? "s" : ""}`}
-                              </div>
-                            </div>
-                            <div style={{ marginLeft:"auto", fontSize:22, color:"#8A5A00" }}>{swimHomeSection === "meets" ? "▲" : "▼"}</div>
-                          </button>
-
-                          {swimHomeSection === "meets" && (
-                            <div style={{ marginTop:-6, background:"#EFEDE8", border:"2px solid #C9C5BC", borderRadius:8, padding:12, display:"flex", flexDirection:"column", gap:8 }}>
+                          {swimSavedMeets.length > 0 && (
+                            <div style={{ background:"#EFEDE8", border:"2px solid #C9C5BC", borderRadius:8, padding:12, display:"flex", flexDirection:"column", gap:8 }}>
+                              <div style={{ ...TM_LABEL }}>Saved meets</div>
                               {swimSavedMeets.length === 0 ? (
                                 <div style={{ fontSize:14, color:"#3D434B", textAlign:"center", padding:"12px 0" }}>No saved meets yet. Tap New Meet to start one.</div>
                               ) : swimSavedMeets.map(meet => (
@@ -6163,6 +6127,16 @@ ${html}</body></html>`);
                               <div style={{ fontSize:14, color:"#3D434B", marginTop:2 }}>
                                 {swimArchive.length === 0 ? "No past meets yet" : `${swimArchive.length} meet${swimArchive.length !== 1 ? "s" : ""} archived`}
                               </div>
+                            </div>
+                            <div style={{ marginLeft:"auto", fontSize:22, color:"#04613F" }}>→</div>
+                          </button>
+
+                          <button onClick={() => setSwimView("files")}
+                            style={{ background:"#EFEDE8", border:"2px solid #04613F", borderRadius:8, padding:"22px 24px", textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:16 }}>
+                            <div style={{ fontSize:40, lineHeight:1 }}>📂</div>
+                            <div>
+                              <div style={{ fontFamily:"var(--tm-font)", fontSize:26, letterSpacing:0.5, color:"#04613F" }}>Import &amp; export</div>
+                              <div style={{ fontSize:14, color:"#3D434B", marginTop:2 }}>Hy-Tek files, results, ribbon labels</div>
                             </div>
                             <div style={{ marginLeft:"auto", fontSize:22, color:"#04613F" }}>→</div>
                           </button>
@@ -6556,8 +6530,6 @@ ${html}</body></html>`);
                               <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
                                 <button style={{ ...btnStyle(TM.ink, true), flex: 1 }} disabled={nEvents === 0}
                                   onClick={() => { saveCurentMeet(); setSwimSavedAt(Date.now()); }}>{swimSavedAt && Date.now() - swimSavedAt < 5000 ? "✓ Saved" : "Save meet"}</button>
-                                <button style={{ ...btnStyle(TM.ink, true), flex: 1 }} disabled={nEvents === 0}
-                                  onClick={() => { persistSwimArchive(swimMeet); alert("Meet saved to archive!"); }}>Save to archive</button>
                               </div>
                               {nEvents === 0 && <div style={{ ...TM_CAPTION, marginTop: 8 }}>Add at least one event (step 3) before saving.</div>}
                               <div style={{ marginTop: 18 }}>
@@ -6659,8 +6631,10 @@ ${html}</body></html>`);
                               </div>
                               <div style={{ display:"flex", gap:10, justifyContent:"center", marginTop:12, flexWrap:"wrap" }}>
                                 {!swimClockStarted ? (<>
-                                  <div style={{ width: "100%", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginBottom: 4 }}>
-                                    <label style={{ fontSize: 14, fontWeight: 700 }}>Start sound{" "}
+                                  <details style={{ width: "100%", marginBottom: 4 }}>
+                                    <summary style={{ fontSize: 14, fontWeight: 700, color: "#3D434B", cursor: "pointer" }}>Start sound</summary>
+                                  <div style={{ width: "100%", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginTop: 8 }}>
+                                    <label style={{ fontSize: 14, fontWeight: 700 }}>Sound{" "}
                                       <select defaultValue={startSoundChoice()} onChange={e => { try { localStorage.setItem("swim-start-sound", e.target.value); } catch (_) {} }}
                                         style={{ fontSize: 15, padding: "6px 8px", borderRadius: 6, border: `2px solid ${TM.line}` }}>
                                         {Object.entries(START_SOUNDS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -6668,6 +6642,7 @@ ${html}</body></html>`);
                                     </label>
                                     <button onClick={() => playStartTone()} style={{ ...btnStyle(TM.ink, true), minHeight: 36, padding: "0 12px", fontSize: 14 }}>🔈 Test</button>
                                   </div>
+                                  </details>
                                   <button onClick={sayTakeYourMarks}
                                     style={{ ...btnStyle(TM.ink, true), fontSize:16, padding:"12px 18px" }}>
                                     🔊 Take your marks
@@ -6696,7 +6671,7 @@ ${html}</body></html>`);
                             <div style={{ background:"#FFFFFF", border:"2px solid #C9C5BC", borderRadius:8, padding:"12px 14px", marginBottom:14 }}>
                               <div style={{ fontSize:14, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color:"#3D434B", marginBottom:8 }}>📡 Live Session</div>
                               {!swimLiveCode ? (
-                                <button style={{ ...btnStyle("#04613F"), fontSize:14, padding:"8px 20px" }} onClick={async () => {
+                                <button style={{ ...btnStyle("#04613F"), fontSize:16, padding:"12px 20px", width:"100%" }} onClick={async () => {
                                   const savedMeet = swimSavedMeets.find(m => m.id === swimMeet._id);
                                   if (!swimMeet._id || !savedMeet) {
                                     if ((swimMeet.meetName || "").trim()) { saveAndStartLiveSession(swimMeet.meetName); return; }
@@ -6724,7 +6699,7 @@ ${html}</body></html>`);
                                   setSwimLiveCode(code);
                                   syncServerClock(`swimLive/${code}/clock/host`);
                                 }}>
-                                  Start Live Session
+                                  📡 Go live — let lane timers and parents join
                                 </button>
                               ) : (
                                 <div>
@@ -6780,40 +6755,18 @@ ${html}</body></html>`);
                                         {sw.fromEvent && swimMeet.events.some(o => o.mergedInto === activeEv.eventNum) && (() => { const fe = swimMeet.events.find(o => o.eventNum === sw.fromEvent); return fe ? <span style={{ fontWeight: 800, color: TM.swim }}> · Ev {evLabel(fe)} {fe.ageGroup}</span> : null; })()}</div>
                                       {(sw.legs || []).some(Boolean) && <div style={{ fontSize: 13, color: "#3D434B" }}>{(sw.legs || []).map((l, i) => l ? `${i + 1}. ${l.name}` : `${i + 1}. —`).join("  ")}</div>}
                                     </div>
-                                    {(() => {
-                                      const assigned = swimHostClickers.find(c => c.lane === sw.lane);
-                                      const detecting = swimHostClickerDetecting === sw.lane;
-                                      if (detecting) return (
-                                        <div style={{ fontSize:14, color:"#8A5A00", fontWeight:700, whiteSpace:"nowrap" }}>⏳ Press clicker… (Esc to cancel)</div>
-                                      );
-                                      if (assigned) return (
-                                        <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-                                          <span style={{ background:"#EFEDE8", border:"2px solid #C9C5BC", borderRadius:4, padding:"2px 8px", fontSize:14, color:"#04613F", fontFamily:"monospace" }}>
-                                            🎯 {assigned.key === " " ? "Space" : assigned.key}
-                                          </span>
-                                          <button onClick={() => setSwimHostClickers(cs => cs.filter(c => c.lane !== sw.lane))}
-                                            style={{ background:"none", border:"none", color:"#3D434B", cursor:"pointer", fontSize:14, lineHeight:1, padding:"0 2px" }}>×</button>
-                                        </div>
-                                      );
-                                      return (
-                                        <button onClick={() => setSwimHostClickerDetecting(sw.lane)}
-                                          style={{ background:"none", border:"2px dashed #C9C5BC", borderRadius:4, padding:"2px 8px", fontSize:14, color:"#3D434B", cursor:"pointer", whiteSpace:"nowrap" }}>
-                                          🎯 +
-                                        </button>
-                                      );
-                                    })()}
                                     <div style={{ fontSize:20, fontWeight:700, fontVariantNumeric:"tabular-nums", color: finished ? "#0B3FCC" : "#3D434B" }}>
                                       {finished ? formatSwimTime(sw.finalMs) : "--:--.--"}
                                     </div>
                                   </div>
-                                  <div style={{ display:"flex", gap:8 }}>
-                                    <button
+                                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+                                    {!tOn && <button
                                       onPointerDown={e => { if (!sw.scratch) recordFinish(activeEv.eventNum, activeHt.heatNum, sw.lane, eventEpoch(e)); }}
                                       onClick={e => { if (e.detail === 0 && !sw.scratch) recordFinish(activeEv.eventNum, activeHt.heatNum, sw.lane, eventEpoch(e)); }}
                                       disabled={sw.scratch || isDq}
                                       style={{ flex:1, padding:"10px", fontSize:14, fontWeight:700, letterSpacing:1, borderRadius:6, cursor: sw.scratch || isDq ? "default" : "pointer", background: finished ? "#EFEDE8" : "#EFEDE8", border: `2px solid ${finished ? "#0B3FCC" : "#C9C5BC"}`, color: finished ? "#0B3FCC" : "#0B0D10", opacity: sw.scratch || isDq ? 0.4 : 1 }}>
                                       {finished ? `✓ ${formatSwimTime(sw.finalMs)}` : "FINISH"}
-                                    </button>
+                                    </button>}
                                     <button onClick={() => toggleDq(activeEv.eventNum, activeHt.heatNum, sw.lane)}
                                       style={{ padding:"10px 14px", fontSize:14, fontWeight:700, borderRadius:6, cursor:"pointer", background: isDq ? "#B3001B" : "#FFFFFF", border:`2px solid ${isDq ? "#B3001B" : "#C9C5BC"}`, color: isDq ? "#FFFFFF" : "#3D434B" }}>
                                       DQ
@@ -7037,8 +6990,8 @@ ${html}</body></html>`);
                             })()}
 
                             <button style={{ ...btnStyle("#8A5A00"), width:"100%", marginTop:8 }}
-                              onClick={() => { persistSwimArchive(swimMeet); alert("Meet saved to archive!"); }}>
-                              💾 Save Meet to Archive
+                              onClick={() => { persistSwimArchive(swimMeet); alert("Saved to Past Meets."); }}>
+                              ✓ Meet's over — save to Past Meets
                             </button>
                           </div>
                         )}
@@ -7156,57 +7109,6 @@ ${html}</body></html>`);
                       }
                       return <SwimFilesPage meet={swimMeet} teams={swimTeamLib} athletes={swimAthletes} onImport={filesImport} onExport={filesExport} myTeam={myTeam} setMyTeam={setMyTeam} />;
                     })()}
-
-                    {swimView === "devices" && (
-                      <div>
-                        {/* Clicker Assignments */}
-                        <div style={S.card}>
-                          <div style={{ fontSize:14, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color:"#3D434B", marginBottom:10 }}>📡 Clicker Assignments</div>
-                          {swimHostClickers.length === 0 ? (
-                            <div style={{ fontSize:14, color:"#3D434B", marginBottom:10 }}>No custom buttons. Keys 1–9 finish lanes 1–9 (0 = lane 10) — a wired button box works with no setup.</div>
-                          ) : (
-                            <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:10 }}>
-                              {swimHostClickers.map(c => (
-                                <div key={c.lane} style={{ display:"flex", alignItems:"center", gap:10, background:"#FFFFFF", borderRadius:6, padding:"8px 12px" }}>
-                                  <span style={{ fontSize:14, color:"#3D434B", width:60 }}>Lane {c.lane}</span>
-                                  <span style={{ background:"#EFEDE8", border:"2px solid #C9C5BC", borderRadius:4, padding:"2px 10px", fontFamily:"monospace", fontSize:14, color:"#04613F" }}>
-                                    🎯 {c.key === " " ? "Space" : c.key}
-                                  </span>
-                                  <button onClick={() => setSwimHostClickers(cs => cs.filter(x => x.lane !== c.lane))}
-                                    style={{ marginLeft:"auto", background:"none", border:"none", color:"#B3001B", cursor:"pointer", fontSize:16, lineHeight:1 }}>×</button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div style={{ fontSize:14, color:"#3D434B", marginTop:4 }}>
-                            To assign a clicker, go to <strong style={{ color:"#04613F" }}>🏁 Race</strong> tab and tap <strong style={{ color:"#04613F" }}>🎯 +</strong> on any lane card.
-                          </div>
-                        </div>
-
-                        {/* Lane Timer (remote phones) */}
-                        <div style={S.card}>
-                          <div style={{ fontSize:14, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color:"#3D434B", marginBottom:10 }}>🏁 Lane Timer Devices</div>
-                          {swimLiveCode ? (
-                            <div>
-                              <div style={{ fontSize:14, color:"#0B0D10", marginBottom:6 }}>Share this code with lane operators:</div>
-                              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-                                <span style={{ fontSize:28, fontWeight:700, letterSpacing:1.2, color:"#0B3FCC", fontFamily:"monospace" }}>{swimLiveCode}</span>
-                                <button style={{ ...btnStyle("#04613F", true), padding:"5px 12px", fontSize:14 }} onClick={() => navigator.clipboard?.writeText(swimLiveCode).catch(() => {})}>
-                                  📋 Copy
-                                </button>
-                              </div>
-                              <div style={{ fontSize:14, color:"#3D434B", marginTop:8 }}>
-                                Lane timers: open this app → Lane timer → this code → their lane.
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={{ fontSize:14, color:"#3D434B" }}>
-                              No live session active. Start a session from the <strong style={{ color:"#04613F" }}>🏁 Race</strong> tab to share a code with lane timer operators.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     {swimView === "athletes" && (
                       <div style={{ padding: "10px 0 20px" }}>
@@ -7607,6 +7509,7 @@ ${html}</body></html>`);
                       {swimWatchError && <div style={{ marginTop:8, fontSize:14, color:"#B3001B" }}>{swimWatchError}</div>}
                     </div>
                   )}
+                  {!connected && <OtherMeetLabelsCard myTeam={(() => { try { return localStorage.getItem("swim-my-team") || ""; } catch (_) { return ""; } })()} />}
 
                   {/* Connected view */}
                   {connected && (
