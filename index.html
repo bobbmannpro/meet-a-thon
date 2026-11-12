@@ -2923,6 +2923,28 @@ ${html}</body></html>`);
       
       
 
+      // ── How-to videos ──
+      const TUTORIALS = {
+        swimHost:   { src: "media/tutorial-host.mp4", poster: "media/tutorial-host.jpg", title: "How to run a swim meet", len: "75 sec" },
+        swimLane:   { src: "media/tutorial-lane-timer.mp4", poster: "media/tutorial-lane-timer.jpg", title: "How to time a lane", len: "30 sec" },
+        swimParent: { src: "media/tutorial-parent.mp4", poster: "media/tutorial-parent.jpg", title: "How to follow a meet", len: "30 sec" },
+      };
+      function VideoModal({ video, onClose }) {
+        if (!video) return null;
+        return (
+          <div role="dialog" aria-modal="true" aria-label={video.title} onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+            style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(11,13,16,0.92)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 12 }}>
+            <video src={video.src} poster={video.poster} controls autoPlay playsInline
+              style={{ maxWidth: "100%", maxHeight: "calc(100vh - 90px)", borderRadius: 8, background: "#000" }} />
+            <button onClick={onClose} style={{ ...btnStyle("#FFFFFF", true), color: "#FFFFFF", borderColor: "#FFFFFF", marginTop: 12, minHeight: 46, padding: "0 22px" }}>Close</button>
+          </div>
+        );
+      }
+      function TutorialButton({ which, onOpen, style }) {
+        const v = TUTORIALS[which]; if (!v) return null;
+        return <button onClick={() => onOpen(v)} style={{ ...btnStyle(TM.ink, true), minHeight: 46, padding: "0 16px", ...style }}>▶ {v.title} <span style={{ fontWeight: 600, opacity: 0.75 }}>· {v.len}</span></button>;
+      }
+
       // ── Hosting is paid (or by promo code) ──
       // Owner accounts always host. Everyone else needs hostAccess/{uid}: from a
       // subscription, or a promo code the owner hands out.
@@ -3373,6 +3395,7 @@ ${html}</body></html>`);
         });
         const setSwimSavedMeets = (v) => setSwimSavedMeetsRaw(prev => normSavedMeets(typeof v === "function" ? v(prev) : v));
         const [swimHomeSection, setSwimHomeSection] = useState(null);
+        const [videoOpen, setVideoOpen] = useState(null);   // a how-to video playing
         const [swimDeleteMeetConfirm, setSwimDeleteMeetConfirm] = useState(null);
         const [swimShowSaveBefore, setSwimShowSaveBefore] = useState(false);
         const [swimSaveBeforeName, setSwimSaveBeforeName] = useState("");
@@ -5395,6 +5418,7 @@ ${html}</body></html>`);
                 )}
               </div>
             </header>
+            <VideoModal video={videoOpen} onClose={() => setVideoOpen(null)} />
 
             {/* NAV — hosts only. Athletes and spectators move with a back arrow. */}
             {isHost && (() => {
@@ -6060,6 +6084,7 @@ ${html}</body></html>`);
                           <div style={{ fontSize:14, letterSpacing:1.2, textTransform:"uppercase", color:"#3D434B", marginTop:6 }}>
                             {swimMeet.meetName || "No meet loaded"}
                           </div>
+                          <TutorialButton which="swimHost" onOpen={setVideoOpen} style={{ marginTop: 14 }} />
                         </div>
 
                         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -7237,6 +7262,7 @@ ${html}</body></html>`);
               return (
                 <div style={{ maxWidth:640, margin:"0 auto", padding:"0 16px 40px" }}>
                   {!connected && <div style={{ padding:"20px 0 10px", fontSize:20, fontWeight:700, color:"#0B0D10" }}>🏊 Lane Timer</div>}
+                  {!connected && <TutorialButton which="swimLane" onOpen={setVideoOpen} style={{ marginBottom: 12 }} />}
 
                   {/* Swim meets live right now: tap one instead of typing its code */}
                   {!connected && (todayRaces || []).some(r => r.kind === "swim" && r.status === "live") && (
@@ -7472,6 +7498,7 @@ ${html}</body></html>`);
               return (
                 <div style={{ maxWidth:640, margin:"0 auto", padding:"0 16px 40px" }}>
                   <div style={{ padding:"20px 0 10px", fontSize:20, fontWeight:700, color:"#0B0D10" }}>🏊 Watch a Meet</div>
+                  {!connected && <TutorialButton which="swimParent" onOpen={setVideoOpen} style={{ marginBottom: 12 }} />}
 
                   {!connected && (todayRaces || []).some(r => r.status === "live") && (
                     <div style={{ marginBottom: 12 }}>
